@@ -23,7 +23,7 @@ namespace server
         };
 
         public int[,] tetr2 = new int[3, 3]{
-            {0,2,0  },
+            {0,2,0 },
             {0,2,2 },
             {0,0,2 },
         };
