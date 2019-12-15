@@ -12,6 +12,7 @@ namespace server
 {
     class Program
     {
+
         static volatile int numberOfClient = 0;
         static volatile int ready = 0;
         static volatile int otvet = 0;
@@ -44,7 +45,6 @@ namespace server
             {
                 //адрес сервера
                 IPAddress localAddress = IPAddress.Parse("127.0.0.1");
-
                 //на один процессор 4 потока
                 int playerThreadsCount = 2;
                 //макс кол-во потоков
@@ -64,7 +64,7 @@ namespace server
                 {
                     TcpClient clientSocket = serverSocket.AcceptTcpClient();//ждем клиентов
                     ThreadPool.QueueUserWorkItem(ClientThread, clientSocket);//добавляем клиентов в поток
-                    Console.WriteLine("New client");
+                    Console.WriteLine("Accept new client");
                 }
             }
             catch (Exception e) {
@@ -81,182 +81,64 @@ namespace server
         {
             TcpClient client = clientObj as TcpClient;
             NetworkStream clientStream = client.GetStream();
-            NetworkStream clientStreamWrite = client.GetStream();
-            byte[] readBuffer = new byte[1024];
-            byte[] writeBuffer = new byte[1024];
-            double time = 0;
+            //NetworkStream clientStreamWrite = client.GetStream();
+            byte[] readBuffer = new byte[512];
+            byte[] writeBuffer = new byte[512];
+            //double time = 0;
             int buffer;
             lock (clientLock)
             {
                 Clients.Add(clientStream);
                 numberOfClient++;
+                Console.WriteLine("Количество клиентов: " + numberOfClient);
             }
             buffer = clientStream.Read(readBuffer, 0, readBuffer.Length);//читаем имя клиента
             string name = Encoding.Unicode.GetString(readBuffer, 0, buffer);//записываем имя клиента
-            Console.WriteLine("Имя клиента:" + name);
+            Console.WriteLine("Имя клиента: " + name);
             string message;
             try
             {
-                
                 while (true)
                 {
-                    buffer = clientStream.Read(readBuffer, 0, readBuffer.Length);
+                    // loh
+                    buffer = clientStream.Read(readBuffer, 0, readBuffer.Length);// чтение конекшена и готовности всех игроков
                     message = Encoding.Unicode.GetString(readBuffer, 0, buffer);
-                    Console.WriteLine(name + ":" + message);
+                    Console.WriteLine(name + ": " + (message == "1" ? "Подключился":"Готов играть"));
                     switch (Convert.ToInt32(message))
                     {
                         case 1://получаем команду готовности от клиента
-                            time = 0;//no time in project
+                            //time = 0;//no time in project
                             lock (targetLock)
                             {
                                 if (res != 0) { res = 0; }// result to null
                                 ready++;
                             }
                             while (ready != numberOfClient) { Thread.Sleep(20); }
-                            writeBuffer = Encoding.Unicode.GetBytes("go");
+                            writeBuffer = Encoding.Unicode.GetBytes("go");//отправляем клиенту, что все подключились
                             clientStream.Write(writeBuffer, 0, writeBuffer.Length);
                             break;
-                        case 2://клиент готов получить первую мишень
+                        case 2: //готовность играть
                             lock (targetLock)
                             {
                                 if (ready != 0) { ready = 0; }
                                 play++;
                             }
                             while (play != numberOfClient) { Thread.Sleep(20); }
-                            Thread messageHandler = new Thread(delegate() { MessageHandler(clientStreamWrite); });
-                            messageHandler.Start();
+                            //Thread messageHandler = new Thread(delegate() { MessageHandler(clientStream); });
+                            //messageHandler.Start();
                             //lock (targetLock)
                             //{
                             //    Init();
                             //}
 
+                            //Init();
                             while (true)
                             {
-                                Init();
-
-                                writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
+                                writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
                                 clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-
-                                //buffer = clientStream.Read(readBuffer, 0, readBuffer.Length);
-                                //message = Encoding.Unicode.GetString(readBuffer, 0, buffer);
-
-                                //switch (Convert.ToInt32(message))
-                                //{
-                                //    case 1://key up
-                                //        if (!IsIntersects())
-                                //        {
-                                //            bufferMatrixMap = ResetArea();
-                                //            writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                                //            clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                //            currentShape.RotateShape();
-                                //            bufferMatrixMap = Merge();
-                                //            writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                                //            clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                //        }
-                                //        break;
-                                //    case 2:
-                                //        timer1.Interval = 10;
-                                //        break;
-                                //    case 3://move right
-                                //        if (!CollideHor(1))
-                                //        {
-                                //            bufferMatrixMap = ResetArea();
-                                //            writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                                //            clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                //            currentShape.MoveRight();
-                                //            bufferMatrixMap = Merge();
-                                //            writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                                //            clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                //        }
-                                //        break;
-                                //    case 4://move left
-                                //        if (!CollideHor(-1))
-                                //        {
-                                //            bufferMatrixMap = ResetArea();
-                                //            writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                                //            clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                //            currentShape.MoveLeft();
-                                //            bufferMatrixMap = Merge();
-                                //            writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                                //            clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                //        }
-                                //        break;
-
-                                //}
+                                RandomMatrix(map);
+                                Thread.Sleep(100);
                             }
-                            //break;
-                        //case 3://клиент нажал кнопку
-                        //    //lock (targetlock)
-                        //    //{
-                        //    //    if (play != 0) { play = 0; }
-                        //    //    if (hitget != 0) { hitget = 0; }
-                        //    //    x1 = y1 = 0;
-                        //    //    hit++;
-                        //    //}
-
-                        //    while (hit != numberOfClient) { Thread.Sleep(20); }
-                        //    writeBuffer = Encoding.Unicode.GetBytes("time");
-                        //    clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                        //    size = clientStream.Read(readBuffer, 0, readBuffer.Length);
-                        //    message = Encoding.Unicode.GetString(readBuffer, 0, size);
-                        //    time += Convert.ToDouble(message);
-                        //    lock (targetLock)
-                        //    {
-                        //        if (x != x1 && y != y1)
-                        //        {
-                        //            Random r = new Random();
-                        //            float between = 0;
-                        //            while (between < 90)
-                        //            {
-                        //                x1 = r.Next(1, 500);
-                        //                y1 = r.Next(1, 500);
-                        //                between = (float)Math.Sqrt(((x - x1) * (x - x1)) + ((y - y1) * (y - y1)));
-                        //            }
-                        //            x = x1;
-                        //            y = y1;
-                        //        }
-                        //    }
-                        //    string hh = x.ToString() + "|" + y.ToString();
-                        //    writeBuffer = Encoding.Unicode.GetBytes(hh);
-                        //    clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                        //    lock (targetLock)
-                        //    {
-                        //        hitget++;
-                        //        if (hitget == numberOfClient)
-                        //        {
-                        //            hit = 0;
-                        //        }
-                        //    }
-
-                        //    break;
-                        //case 4://клиент готов получить результат
-                        //    lock (targetLock)
-                        //    {
-                        //        if (otvet != 0)
-                        //        {
-                        //            otvet = 0;
-                        //        }
-                        //        res++;//количесвтво клиентого которые готовы получить результаты
-                        //    }
-                        //    while (res != numberOfClient) { Thread.Sleep(20); }//ждем других клиентов
-                        //    writeBuffer = Encoding.Unicode.GetBytes(numberOfClient.ToString());//отправляем количество влиентов клиентам
-                        //    clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                        //    size = clientStream.Read(readBuffer, 0, readBuffer.Length);//ждем команды от клиента что он получил сообщение
-                        //    message = Encoding.Unicode.GetString(readBuffer, 0, size);
-                        //    if (message != "ready") { break; }
-                        //    otvet++;
-                        //    while (otvet != numberOfClient) { Thread.Sleep(20); }//ждем других клиентов
-                        //    lock (targetLock)
-                        //    {
-                        //        h = name + ":" + (time / 10).ToString();
-                        //        byte[] bytes = Encoding.Unicode.GetBytes(h);
-                        //        for (int i = 0; i < Clients.Count; i++)
-                        //        {
-                        //            Clients[i].Write(bytes, 0, bytes.Length);
-                        //        }
-
-                        //    }
-                        //    break;
                     }
                 }
             }
@@ -267,7 +149,6 @@ namespace server
             finally
             {
                 clientStream.Close();
-                clientStreamWrite.Close();
                 client.Close();
                 lock (clientLock)
                 {
@@ -276,6 +157,19 @@ namespace server
                 }
                 Console.WriteLine("disconnect,Number of Client:" + numberOfClient.ToString());
             }
+        }
+
+        public static int[,] RandomMatrix(int[,] map)
+        {
+            Random rnd = new Random();
+            for(int y = 0; y < 16; y++)
+            {
+                for(int x = 0; x < 8; x++)
+                {
+                    map[y, x] = rnd.Next(0, 6);
+                }
+            }
+            return map;
         }
 
         public static void MessageHandler(NetworkStream clientStreamWrite)
@@ -296,11 +190,11 @@ namespace server
                     case 1://key up
                         if (!IsIntersects())
                         {
-                            bufferMatrixMap = ResetArea();
+                            map = ResetArea();
                             //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
                             //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
                             currentShape.RotateShape();
-                            bufferMatrixMap = Merge();
+                            map = Merge();
                             //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
                             //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
                         }
@@ -311,11 +205,11 @@ namespace server
                     case 3://move right
                         if (!CollideHor(1))
                         {
-                            bufferMatrixMap = ResetArea();
+                            map = ResetArea();
                             //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
                             //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
                             currentShape.MoveRight();
-                            bufferMatrixMap = Merge();
+                            map = Merge();
                             //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
                             //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
                         }
@@ -323,11 +217,11 @@ namespace server
                     case 4://move left
                         if (!CollideHor(-1))
                         {
-                            bufferMatrixMap = ResetArea();
+                            map = ResetArea();
                             //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
                             //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
                             currentShape.MoveLeft();
-                            bufferMatrixMap = Merge();
+                            map = Merge();
                             //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
                             //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
                         }
