@@ -100,7 +100,6 @@ namespace server
             {
                 while (true)
                 {
-                    // loh
                     buffer = clientStream.Read(readBuffer, 0, readBuffer.Length);// чтение конекшена и готовности всех игроков
                     message = Encoding.Unicode.GetString(readBuffer, 0, buffer);
                     Console.WriteLine(name + ": " + (message == "1" ? "Подключился":"Готов играть"));
@@ -137,7 +136,7 @@ namespace server
                                 writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
                                 clientStream.Write(writeBuffer, 0, writeBuffer.Length);
                                 RandomMatrix(map);
-                                Thread.Sleep(100);
+                                Thread.Sleep(300);
                             }
                     }
                 }
