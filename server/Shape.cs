@@ -15,33 +15,45 @@ namespace server
         public int sizeMatrix;
         public int sizeNextMatrix;
 
-        public int[,] tetr1 = new int[4, 4]{
-            {0,0,1,0  },
-            {0,0,1,0  },
-            {0,0,1,0  },
-            {0,0,1,0  },
+        public int[,] shapeI = new int[4, 4]{
+            {0, 0, 1, 0},
+            {0, 0, 1, 0},
+            {0, 0, 1, 0},
+            {0, 0, 1, 0},
         };
 
-        public int[,] tetr2 = new int[3, 3]{
-            {0,2,0 },
-            {0,2,2 },
-            {0,0,2 },
+        public int[,] shapeS = new int[3, 3]{
+            {0, 2, 0},
+            {0, 2, 2},
+            {0, 0, 2},
         };
 
-        public int[,] tetr3 = new int[3, 3]{
-            {0,0,0 },
-            {3,3,3 },
-            {0,3,0 },
+        public int[,] shapeZ = new int[3, 3]{
+            {0,3,0},
+            {3,3,0},
+            {3,0,0},
         };
 
-        public int[,] tetr4 = new int[3, 3]{
-            {4,0,0 },
-            {4,0,0 },
-            {4,4,0 },
+        public int[,] shapeL = new int[3, 3]{
+            {4, 0, 0},
+            {4, 0, 0},
+            {4, 4, 0},
         };
-        public int[,] tetr5 = new int[2, 2]{
-            {5,5 },
-            {5,5 },
+
+        public int[,] shapeJ = new int[3, 3]{
+            {0, 0, 5},
+            {0, 0, 5},
+            {0, 5, 5},
+        };
+
+        public int[,] shapeO = new int[2, 2]{
+            {6, 6},
+            {6, 6},
+        };
+        public int[,] shapeT = new int[3, 3]{
+            {7, 0, 0},
+            {7, 7, 0},
+            {7, 0, 0},
         };
 
 
@@ -49,9 +61,9 @@ namespace server
         {
             x = _x;
             y = _y;
-            matrix = GenerateMatrix();
+            matrix = GenerateMatrix().First();
             sizeMatrix = (int)Math.Sqrt(matrix.Length);
-            nextMatrix = GenerateMatrix();
+            nextMatrix = GenerateMatrix().First();
             sizeNextMatrix = (int)Math.Sqrt(nextMatrix.Length);
         }
 
@@ -61,33 +73,61 @@ namespace server
             y = _y;
             matrix = nextMatrix;
             sizeMatrix = (int)Math.Sqrt(matrix.Length);
-            nextMatrix = GenerateMatrix();
+            nextMatrix = GenerateMatrix().First();
             sizeNextMatrix = (int)Math.Sqrt(nextMatrix.Length);
         }
 
-        public int[,] GenerateMatrix()
+        public IEnumerable<int[,]> GenerateMatrix()
         {
-            int[,] _matrix = tetr1;
-            Random r = new Random();
-            switch (r.Next(1, 6))
+            var pieces = new List<int[,]> {shapeI, shapeL, shapeJ, shapeS, shapeZ, shapeT, shapeO}; //Сет всех тетрамино
+            var order = new List<int[,]> {shapeI, shapeL, shapeJ, shapeT};
+            var history = new List<int[,]> {shapeS, shapeZ, shapeS}; //Пул истории фигур
+
+            var pool = new List<int[,]>(); //Пул фигур
+
+            for (int i = 0; i < 5; i++)
+                pool.Concat(pieces);
+
+            Random randomizer = new Random();
+
+            //Первый элемент выкидывается по более простому правилу
+            var firstElement = order.ElementAt(randomizer.Next(0, 4));
+            yield return firstElement;
+            history.Add(firstElement);
+
+            order.Clear();
+
+            while (true)
             {
-                case 1:
-                    _matrix = tetr1;
-                    break;
-                case 2:
-                    _matrix = tetr2;
-                    break;
-                case 3:
-                    _matrix = tetr3;
-                    break;
-                case 4:
-                    _matrix = tetr4;
-                    break;
-                case 5:
-                    _matrix = tetr5;
-                    break;
+                int i = 0;
+                var piece = shapeI;
+
+                //Роллим фигурку
+                for (int roll = 0; roll < 6; ++roll)
+                {
+                    i = randomizer.Next(0, 36);
+                    piece = pool.ElementAt(i);
+                    if (history.Contains(piece) || roll == 5) {
+                        break;
+                    }
+                    if (order.Count == 0)
+                        pool[i] = order[0];
+                }
+
+                //Правим порядок броска фигур, чтобы не было потопов/засух
+                if (order.Contains(piece))
+                {
+                    order.RemoveRange(order.IndexOf(piece), 1);
+                }
+                order.Add(piece);
+
+                pool[i] = order[0];
+
+                //Добавляем полученую в историю
+                history.ShiftLeft(1);
+                history[3] = piece;
+                yield return piece;
             }
-            return _matrix;
         }
 
         public void RotateShape()
@@ -127,6 +167,33 @@ namespace server
         public void MoveLeft()
         {
             x--;
+        }
+    }
+
+    public static class ShiftList
+    {
+        public static List<T> ShiftLeft<T>(this List<T> list, int shiftBy)
+        {
+            if (list.Count <= shiftBy)
+            {
+                return list;
+            }
+
+            var result = list.GetRange(shiftBy, list.Count - shiftBy);
+            result.AddRange(list.GetRange(0, shiftBy));
+            return result;
+        }
+
+        public static List<T> ShiftRight<T>(this List<T> list, int shiftBy)
+        {
+            if (list.Count <= shiftBy)
+            {
+                return list;
+            }
+
+            var result = list.GetRange(list.Count - shiftBy, shiftBy);
+            result.AddRange(list.GetRange(0, list.Count - shiftBy));
+            return result;
         }
     }
 }
