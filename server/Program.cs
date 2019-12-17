@@ -65,6 +65,7 @@ namespace server
                     TcpClient clientSocket = serverSocket.AcceptTcpClient();//ждем клиентов
                     ThreadPool.QueueUserWorkItem(ClientThread, clientSocket);//добавляем клиентов в поток
                     Console.WriteLine("Accept new client");
+                    Thread.Sleep(50);
                 }
             }
             catch (Exception e) {
@@ -131,6 +132,10 @@ namespace server
                             //}
 
                             //Init();
+                            // этот вызов нити еще не работает
+                            Thread keyPressListener = new Thread(delegate() { ClientPressKeyHandler(client); });
+                            keyPressListener.Start();
+
                             while (true)
                             {
                                 writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
@@ -165,7 +170,7 @@ namespace server
             {
                 for(int x = 0; x < 8; x++)
                 {
-                    map[y, x] = rnd.Next(0, 6);
+                    map[y, x] = rnd.Next(-1, 8);
                 }
             }
             return map;
@@ -231,6 +236,35 @@ namespace server
             }
         }
 
+        //обработчик не работает
+        static void ClientPressKeyHandler(TcpClient client)
+        {
+            NetworkStream clientPressKeyStream = client.GetStream();
+            while (true)
+            {
+                string inputString;
+                byte[] readBuffer = new byte[256];
+                int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
+                inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
+                switch (inputString)
+                {
+                    case "Up":
+                        Console.WriteLine("Up");
+                        break;
+                    case "Down":
+                        Console.WriteLine("Down");
+                        break;
+                    case "Right":
+                        Console.WriteLine("Right");
+                        break;
+                    case "Left":
+                        Console.WriteLine("Left");
+                        break;
+                }
+                Thread.Sleep(50);
+            }
+        }
+        
         public static void Init()
         {
             size = 25;//размер квадратика в пикселях
