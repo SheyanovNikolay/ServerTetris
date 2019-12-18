@@ -19,6 +19,7 @@ namespace server
         static volatile int res = 0;
         static readonly object targetLock = new object();//отвечает за доступ к коду
         static readonly object clientLock = new object();//отвечает за доступ к коду
+        static readonly object mapLock = new object();
         static List<NetworkStream> Clients = new List<NetworkStream>();
 
         // переменные от Тетриса
@@ -118,13 +119,18 @@ namespace server
                             Thread keyPressListener = new Thread(delegate() { ClientPressKeyHandler(client); });
                             keyPressListener.Start();
 
-                            Init();
+                            Thread gameLoopThread = new Thread(Init);
+                            gameLoopThread.Start();
+                            //Init();
                             while (true)
                             {
+                                lock (mapLock)
+                                { 
                                 writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
                                 clientStream.Write(writeBuffer, 0, writeBuffer.Length);
                                 //RandomMatrix(map);
-                                Thread.Sleep(300);
+                                Thread.Sleep(300);//300
+                                }
                             }
                     }
                 }
@@ -170,38 +176,41 @@ namespace server
                 byte[] readBuffer = new byte[256];
                 int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
                 inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
-                switch (inputString)
+                lock (mapLock)
                 {
-                    case "Up":
-                        Console.Write("Up ");
-                        if (!IsIntersects())
-                        {
-                            ResetArea();
-                            currentShape.RotateShape();
-                            Merge();
-                        }
-                        break;
-                    case "Down":
-                        Console.Write("Down ");
-                        break;
-                    case "Right":
-                        Console.Write("Right ");
-                        if (!CollideHor(1))
-                        {
-                            ResetArea();
-                            currentShape.MoveRight();
-                            Merge();
-                        }
-                        break;
-                    case "Left":
-                        Console.Write("Left ");
-                        if (!CollideHor(-1))
-                        {
-                            ResetArea();
-                            currentShape.MoveLeft();
-                            Merge();
-                        }
-                        break;
+                    switch (inputString)
+                    {
+                        case "Up":
+                            Console.Write("Up ");
+                            if (!IsIntersects())
+                            {
+                                ResetArea();
+                                currentShape.RotateShape();
+                                Merge();
+                            }
+                            break;
+                        case "Down":
+                            Console.Write("Down ");
+                            break;
+                        case "Right":
+                            Console.Write("Right ");
+                            if (!CollideHor(1))
+                            {
+                                ResetArea();
+                                currentShape.MoveRight();
+                                Merge();
+                            }
+                            break;
+                        case "Left":
+                            Console.Write("Left ");
+                            if (!CollideHor(-1))
+                            {
+                                ResetArea();
+                                currentShape.MoveLeft();
+                                Merge();
+                            }
+                            break;
+                    }
                 }
             }
         }
@@ -211,7 +220,7 @@ namespace server
             size = 25;//размер квадратика в пикселях
             score = 0;
             currentShape = new Shape(3, 0);// должна приходить с сервака
-            Interval = 280;
+            Interval = 500;
 
             timer1.Interval = Interval;
             timer1.Elapsed += new ElapsedEventHandler(update);
@@ -220,32 +229,35 @@ namespace server
 
         private static void update(object sender, ElapsedEventArgs e)
         {
-            ResetArea();
-            if (!Collide())
+            lock (mapLock)
             {
-                currentShape.MoveDown();
-            }
-            else
-            {
-                Merge();
-                SliceMap();
-                timer1.Interval = Interval;
-                currentShape.ResetShape(3, 0);
-                if (Collide())
+                ResetArea();
+                if (!Collide())
                 {
-                    for (int i = 0; i < 16; i++)
-                    {
-                        for (int j = 0; j < 8; j++)
-                        {
-                            map[i, j] = 0;
-                        }
-                    }
-                    timer1.Elapsed -= new ElapsedEventHandler(update);
-                    timer1.Stop();
-                    Init();
+                    currentShape.MoveDown();
                 }
+                else
+                {
+                    Merge();
+                    SliceMap();
+                    timer1.Interval = Interval;
+                    currentShape.ResetShape(3, 0);
+                    if (Collide())
+                    {
+                        for (int i = 0; i < 16; i++)
+                        {
+                            for (int j = 0; j < 8; j++)
+                            {
+                                map[i, j] = 0;
+                            }
+                        }
+                        timer1.Elapsed -= new ElapsedEventHandler(update);
+                        timer1.Stop();
+                        Init();
+                    }
+                }
+                Merge();
             }
-            Merge();
        }
 
         public static void Merge()
