@@ -107,7 +107,6 @@ namespace server
                     switch (Convert.ToInt32(message))
                     {
                         case 1://получаем команду готовности от клиента
-                            //time = 0;//no time in project
                             lock (targetLock)
                             {
                                 if (res != 0) { res = 0; }// result to null
@@ -124,15 +123,7 @@ namespace server
                                 play++;
                             }
                             while (play != numberOfClient) { Thread.Sleep(20); }
-                            //Thread messageHandler = new Thread(delegate() { MessageHandler(clientStream); });
-                            //messageHandler.Start();
-                            //lock (targetLock)
-                            //{
-                            //    Init();
-                            //}
 
-                            //Init();
-                            // этот вызов нити еще не работает
                             Thread keyPressListener = new Thread(delegate() { ClientPressKeyHandler(client); });
                             keyPressListener.Start();
 
@@ -166,11 +157,19 @@ namespace server
         public static int[,] RandomMatrix(int[,] map)
         {
             Random rnd = new Random();
-            for(int y = 0; y < 16; y++)
+            //for(int y = 0; y < 16; y++)
+            //{
+            //    for(int x = 0; x < 8; x++)
+            //    {
+            //        map[y, x] = rnd.Next(-1, 8);
+            //    }
+            //}
+
+            for (int y = 3; y < 9; y++)
             {
-                for(int x = 0; x < 8; x++)
+                for (int x = 3; x < 5; x++)
                 {
-                    map[y, x] = rnd.Next(-1, 8);
+                    map[y, x] = 3;
                 }
             }
             return map;
@@ -236,7 +235,7 @@ namespace server
             }
         }
 
-        //обработчик не работает
+        //обработчик нажатия клавиш клиентом
         static void ClientPressKeyHandler(TcpClient client)
         {
             NetworkStream clientPressKeyStream = client.GetStream();
