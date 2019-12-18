@@ -29,19 +29,32 @@ namespace server
         };
 
         public int[,] tetr3 = new int[3, 3]{
-            {0,0,0 },
-            {3,3,3 },
             {0,3,0 },
+            {3,3,0 },
+            {3,0,0 },
         };
 
         public int[,] tetr4 = new int[3, 3]{
-            {4,0,0 },
-            {4,0,0 },
-            {4,4,0 },
+            {0,0,0 },
+            {4,4,4 },
+            {0,4,0 },
         };
-        public int[,] tetr5 = new int[2, 2]{
-            {5,5 },
-            {5,5 },
+
+        public int[,] tetr5 = new int[3, 3]{
+            {5,0,0 },
+            {5,0,0 },
+            {5,5,0 },
+        };
+
+        public int[,] tetr6 = new int[3, 3]{
+            {0,0,6 },
+            {0,0,6 },
+            {0,6,6 },
+        };
+
+        public int[,] tetr7 = new int[2, 2]{
+            {7,7 },
+            {7,7 },
         };
 
 
@@ -69,7 +82,7 @@ namespace server
         {
             int[,] _matrix = tetr1;
             Random r = new Random();
-            switch (r.Next(1, 6))
+            switch (r.Next(1, 8))
             {
                 case 1:
                     _matrix = tetr1;
@@ -85,6 +98,12 @@ namespace server
                     break;
                 case 5:
                     _matrix = tetr5;
+                    break;
+                case 6:
+                    _matrix = tetr6;
+                    break;
+                case 7:
+                    _matrix = tetr7;
                     break;
             }
             return _matrix;
