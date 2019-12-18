@@ -81,10 +81,8 @@ namespace server
         {
             TcpClient client = clientObj as TcpClient;
             NetworkStream clientStream = client.GetStream();
-            //NetworkStream clientStreamWrite = client.GetStream();
             byte[] readBuffer = new byte[512];
             byte[] writeBuffer = new byte[512];
-            //double time = 0;
             int buffer;
             lock (clientLock)
             {
@@ -106,7 +104,6 @@ namespace server
                     switch (Convert.ToInt32(message))
                     {
                         case 1://получаем команду готовности от клиента
-                            //time = 0;//no time in project
                             lock (targetLock)
                             {
                                 if (res != 0) { res = 0; }// result to null
@@ -123,16 +120,13 @@ namespace server
                                 play++;
                             }
                             while (play != numberOfClient) { Thread.Sleep(20); }
-                            //Thread messageHandler = new Thread(delegate() { MessageHandler(clientStream); });
-                            //messageHandler.Start();
-                            //lock (targetLock)
-                            //{
-                            //    Init();
-                            //}
 
-                            //Init();
+                            Thread keyPressListener = new Thread(delegate () { ClientPressKeyHandler(client); });
+                            keyPressListener.Start();
+
                             while (true)
                             {
+                                
                                 writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
                                 clientStream.Write(writeBuffer, 0, writeBuffer.Length);
                                 RandomMatrix(map);
@@ -155,6 +149,40 @@ namespace server
                     numberOfClient--;
                 }
                 Console.WriteLine("disconnect,Number of Client:" + numberOfClient.ToString());
+            }
+        }
+
+        public static void GameMaster(string keyPress)
+        {
+
+        }
+
+        //обработчик нажатия клавиш клиентом
+        static void ClientPressKeyHandler(TcpClient client)
+        {
+            NetworkStream clientPressKeyStream = client.GetStream();
+            while (true)
+            {
+                string inputString;
+                byte[] readBuffer = new byte[256];
+                int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
+                inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
+                switch (inputString)
+                {
+                    case "Up":
+                        Console.WriteLine("Up");
+                        break;
+                    case "Down":
+                        Console.WriteLine("Down");
+                        break;
+                    case "Right":
+                        Console.WriteLine("Right");
+                        break;
+                    case "Left":
+                        Console.WriteLine("Left");
+                        break;
+                }
+                Thread.Sleep(50);
             }
         }
 
