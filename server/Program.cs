@@ -15,27 +15,20 @@ namespace server
 
         static volatile int numberOfClient = 0;
         static volatile int ready = 0;
-        static volatile int otvet = 0;
         static volatile int play = 0;
-        static volatile int hit = 0;
-        static volatile int hitget = 0;
         static volatile int res = 0;
-        static volatile int x = 0, y = 0;
-        static volatile int x1 = 0, y1 = 0;
         static readonly object targetLock = new object();//отвечает за доступ к коду
         static readonly object clientLock = new object();//отвечает за доступ к коду
         static List<NetworkStream> Clients = new List<NetworkStream>();
 
         // переменные от Тетриса
         static Shape currentShape;
-        static int size;
         static int[,] map = new int[16, 8];
         static int linesRemoved;
+        static int size = 25;
         static int score;
         static int Interval;
         static System.Timers.Timer timer1 = new System.Timers.Timer();
-
-        static int[,] bufferMatrixMap = new int[16, 8];
 
         static void Main(string[] args)
         {
@@ -82,10 +75,8 @@ namespace server
         {
             TcpClient client = clientObj as TcpClient;
             NetworkStream clientStream = client.GetStream();
-            //NetworkStream clientStreamWrite = client.GetStream();
             byte[] readBuffer = new byte[512];
             byte[] writeBuffer = new byte[512];
-            //double time = 0;
             int buffer;
             lock (clientLock)
             {
@@ -127,11 +118,12 @@ namespace server
                             Thread keyPressListener = new Thread(delegate() { ClientPressKeyHandler(client); });
                             keyPressListener.Start();
 
+                            Init();
                             while (true)
                             {
                                 writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
                                 clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                RandomMatrix(map);
+                                //RandomMatrix(map);
                                 Thread.Sleep(300);
                             }
                     }
@@ -150,92 +142,25 @@ namespace server
                     Clients.Remove(clientStream);
                     numberOfClient--;
                 }
-                Console.WriteLine("disconnect,Number of Client:" + numberOfClient.ToString());
+                Console.WriteLine("Disconnect, Number of Client:" + numberOfClient.ToString());
             }
         }
 
         public static int[,] RandomMatrix(int[,] map)
         {
             Random rnd = new Random();
-            //for(int y = 0; y < 16; y++)
-            //{
-            //    for(int x = 0; x < 8; x++)
-            //    {
-            //        map[y, x] = rnd.Next(-1, 8);
-            //    }
-            //}
-
-            for (int y = 3; y < 9; y++)
+            for (int y = 0; y < 16; y++)
             {
-                for (int x = 3; x < 5; x++)
+                for (int x = 0; x < 8; x++)
                 {
-                    map[y, x] = 3;
+                    map[y, x] = rnd.Next(-1, 8);
                 }
             }
+
             return map;
         }
 
-        public static void MessageHandler(NetworkStream clientStreamWrite)
-        {
-            byte[] readBuffer = new byte[1024];
-            byte[] writeBuffer = new byte[1024];
-            double time = 0;
-            int buffer;
-            string message;
-
-            while (true)
-            {
-                buffer = clientStreamWrite.Read(readBuffer, 0, readBuffer.Length);
-                message = Encoding.Unicode.GetString(readBuffer, 0, buffer);
-
-                switch (Convert.ToInt32(message))
-                {
-                    case 1://key up
-                        if (!IsIntersects())
-                        {
-                            map = ResetArea();
-                            //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                            //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
-                            currentShape.RotateShape();
-                            map = Merge();
-                            //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                            //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
-                        }
-                        break;
-                    case 2:
-                        timer1.Interval = 10;
-                        break;
-                    case 3://move right
-                        if (!CollideHor(1))
-                        {
-                            map = ResetArea();
-                            //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                            //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
-                            currentShape.MoveRight();
-                            map = Merge();
-                            //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                            //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
-                        }
-                        break;
-                    case 4://move left
-                        if (!CollideHor(-1))
-                        {
-                            map = ResetArea();
-                            //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                            //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
-                            currentShape.MoveLeft();
-                            map = Merge();
-                            //writeBuffer = Encoding.Unicode.GetBytes(ToString(bufferMatrixMap));
-                            //clientStreamWrite.Write(writeBuffer, 0, writeBuffer.Length);
-                        }
-                        break;
-
-                }
-                Thread.Sleep(10);
-            }
-        }
-
-        //обработчик нажатия клавиш клиентом
+         //обработчик нажатия клавиш клиентом
         static void ClientPressKeyHandler(TcpClient client)
         {
             NetworkStream clientPressKeyStream = client.GetStream();
@@ -248,19 +173,36 @@ namespace server
                 switch (inputString)
                 {
                     case "Up":
-                        Console.WriteLine("Up");
+                        Console.Write("Up ");
+                        if (!IsIntersects())
+                        {
+                            ResetArea();
+                            currentShape.RotateShape();
+                            Merge();
+                        }
                         break;
                     case "Down":
-                        Console.WriteLine("Down");
+                        Console.Write("Down ");
                         break;
                     case "Right":
-                        Console.WriteLine("Right");
+                        Console.Write("Right ");
+                        if (!CollideHor(1))
+                        {
+                            ResetArea();
+                            currentShape.MoveRight();
+                            Merge();
+                        }
                         break;
                     case "Left":
-                        Console.WriteLine("Left");
+                        Console.Write("Left ");
+                        if (!CollideHor(-1))
+                        {
+                            ResetArea();
+                            currentShape.MoveLeft();
+                            Merge();
+                        }
                         break;
                 }
-                Thread.Sleep(50);
             }
         }
         
@@ -268,14 +210,11 @@ namespace server
         {
             size = 25;//размер квадратика в пикселях
             score = 0;
-            linesRemoved = 0;
             currentShape = new Shape(3, 0);// должна приходить с сервака
-            Interval = 300;
+            Interval = 280;
 
             timer1.Interval = Interval;
             timer1.Elapsed += new ElapsedEventHandler(update);
-            timer1.AutoReset = true;
-            timer1.Enabled = true;
             timer1.Start();
         }
 
@@ -303,13 +242,13 @@ namespace server
                     }
                     timer1.Elapsed -= new ElapsedEventHandler(update);
                     timer1.Stop();
-                    //Init();
+                    Init();
                 }
             }
             Merge();
        }
 
-        public static int[,] Merge()
+        public static void Merge()
         {
             for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
             {
@@ -319,10 +258,9 @@ namespace server
                         map[i, j] = currentShape.matrix[i - currentShape.y, j - currentShape.x];
                 }
             }
-            return map;
         }
 
-        public static int[,] SliceMap()
+        public static void SliceMap()
         {
             int count = 0;
             int curRemovedLines = 0;
@@ -357,7 +295,6 @@ namespace server
                 if (Interval > 60)
                     Interval -= 10;
             }
-            return map;
         }
 
         public static bool Collide()
@@ -406,7 +343,7 @@ namespace server
             return false;
         }
 
-        public static int[,] ResetArea()
+        public static void ResetArea()
         {
             for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
             {
@@ -421,7 +358,6 @@ namespace server
                     }
                 }
             }
-            return map;
         }
 
         public static bool IsIntersects()
