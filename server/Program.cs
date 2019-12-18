@@ -124,12 +124,16 @@ namespace server
                             Thread keyPressListener = new Thread(delegate () { ClientPressKeyHandler(client); });
                             keyPressListener.Start();
 
+                            Shape startShape = new Shape(3, 3);
+
                             while (true)
                             {
-                                
                                 writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
                                 clientStream.Write(writeBuffer, 0, writeBuffer.Length);
-                                RandomMatrix(map);
+
+                                startShape.MoveDown();
+
+                                //RandomMatrix(map);
                                 Thread.Sleep(300);
                             }
                     }
@@ -170,16 +174,20 @@ namespace server
                 switch (inputString)
                 {
                     case "Up":
-                        Console.WriteLine("Up");
+                        Console.Write("Up ");
+
                         break;
                     case "Down":
-                        Console.WriteLine("Down");
+                        Console.Write("Down ");
+
                         break;
                     case "Right":
-                        Console.WriteLine("Right");
+                        Console.Write("Right ");
+
                         break;
                     case "Left":
-                        Console.WriteLine("Left");
+                        Console.Write("Left ");
+
                         break;
                 }
                 Thread.Sleep(50);
