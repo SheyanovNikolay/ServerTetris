@@ -131,7 +131,7 @@ namespace server
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+            //    Console.WriteLine(e.Message);
             }
             finally
             {
@@ -142,7 +142,7 @@ namespace server
                     Clients.Remove(clientStream);
                     numberOfClient--;
                 }
-                Console.WriteLine("Disconnect, Number of Client:" + numberOfClient.ToString());
+               // Console.WriteLine("Disconnect, Number of Client:" + numberOfClient.ToString());
             }
         }
 
@@ -160,52 +160,62 @@ namespace server
             return map;
         }
 
-         //обработчик нажатия клавиш клиентом
+        //обработчик нажатия клавиш клиентом
         static void ClientPressKeyHandler(TcpClient client)
         {
             NetworkStream clientPressKeyStream = client.GetStream();
-            while (true)
+            try
             {
-                string inputString;
-                byte[] readBuffer = new byte[256];
-                int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
-                inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
-                switch (inputString)
+                while (true)
                 {
-                    case "Up":
-                        Console.Write("Up ");
-                        if (!IsIntersects())
-                        {
-                            ResetArea();
-                            currentShape.RotateShape();
-                            Merge();
-                        }
-                        break;
-                    case "Down":
-                        Console.Write("Down ");
-                        break;
-                    case "Right":
-                        Console.Write("Right ");
-                        if (!CollideHor(1))
-                        {
-                            ResetArea();
-                            currentShape.MoveRight();
-                            Merge();
-                        }
-                        break;
-                    case "Left":
-                        Console.Write("Left ");
-                        if (!CollideHor(-1))
-                        {
-                            ResetArea();
-                            currentShape.MoveLeft();
-                            Merge();
-                        }
-                        break;
+                    string inputString;
+                    byte[] readBuffer = new byte[256];
+                    int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
+                    inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
+                    switch (inputString)
+                    {
+                        case "Up":
+                            Console.Write("Up ");
+                            if (!IsIntersects())
+                            {
+                                ResetArea();
+                                currentShape.RotateShape();
+                                Merge();
+                            }
+                            break;
+                        case "Down":
+                            Console.Write("Down ");
+                            break;
+                        case "Right":
+                            Console.Write("Right ");
+                            if (!CollideHor(1))
+                            {
+                                ResetArea();
+                                currentShape.MoveRight();
+                                Merge();
+                            }
+                            break;
+                        case "Left":
+                            Console.Write("Left ");
+                            if (!CollideHor(-1))
+                            {
+                                ResetArea();
+                                currentShape.MoveLeft();
+                                Merge();
+                            }
+                            break;
+                    }
                 }
             }
+            catch (Exception e)
+            {
+            }
+            client.Close();
+            clientPressKeyStream.Close();
+            Console.WriteLine("Disconnection! Client " + numberOfClient.ToString());
+
         }
-        
+
         public static void Init()
         {
             size = 25;//размер квадратика в пикселях
