@@ -23,8 +23,10 @@ namespace server
         static List<NetworkStream> Clients = new List<NetworkStream>();
 
         // переменные от Тетриса
-        static Shape currentShape;
-        static int[,] map = new int[16, 8];
+        static Shape currentShape1;
+        static Shape currentShape2;
+        static readonly int mapWidth = 12;
+        static int[,] map = new int[16, mapWidth];
         static int linesRemoved;
         static int size = 25;
         static int score;
@@ -44,7 +46,7 @@ namespace server
                 //макс кол-во потоков
                 ThreadPool.SetMaxThreads(playerThreadsCount, playerThreadsCount);
                 //мин кол-во потоков
-                ThreadPool.SetMinThreads(playerThreadsCount -1 , playerThreadsCount -1 );
+                ThreadPool.SetMinThreads(playerThreadsCount -1, playerThreadsCount -1);
 
                 serverSocket = new TcpListener(localAddress, 8080);//создаем сокет
 
@@ -79,10 +81,12 @@ namespace server
             byte[] readBuffer = new byte[512];
             byte[] writeBuffer = new byte[512];
             int buffer;
+            bool firstPlayer = false;
             lock (clientLock)
             {
                 Clients.Add(clientStream);
                 numberOfClient++;
+                if (numberOfClient == 1) firstPlayer = true;
                 Console.WriteLine("Количество клиентов: " + numberOfClient);
             }
             buffer = clientStream.Read(readBuffer, 0, readBuffer.Length);//читаем имя клиента
@@ -119,8 +123,16 @@ namespace server
                             Thread keyPressListener = new Thread(delegate() { ClientPressKeyHandler(client); });
                             keyPressListener.Start();
 
-                            Thread gameLoopThread = new Thread(Init);
-                            gameLoopThread.Start();
+                            if (firstPlayer == true)
+                            {
+                                Thread gameLoopThread = new Thread(Init1);
+                                gameLoopThread.Start();
+                            }
+                            else
+                            {
+                                Thread gameLoopThread = new Thread(Init2);
+                                gameLoopThread.Start();
+                            }
                             //Init();
                             while (true)
                             {
@@ -157,7 +169,7 @@ namespace server
             Random rnd = new Random();
             for (int y = 0; y < 16; y++)
             {
-                for (int x = 0; x < 8; x++)
+                for (int x = 0; x < mapWidth; x++)
                 {
                     map[y, x] = rnd.Next(-1, 8);
                 }
@@ -185,7 +197,7 @@ namespace server
                             if (!IsIntersects())
                             {
                                 ResetArea();
-                                currentShape.RotateShape();
+                                currentShape1.RotateShape();
                                 Merge();
                             }
                             break;
@@ -197,7 +209,7 @@ namespace server
                             if (!CollideHor(1))
                             {
                                 ResetArea();
-                                currentShape.MoveRight();
+                                currentShape1.MoveRight();
                                 Merge();
                             }
                             break;
@@ -206,7 +218,7 @@ namespace server
                             if (!CollideHor(-1))
                             {
                                 ResetArea();
-                                currentShape.MoveLeft();
+                                currentShape1.MoveLeft();
                                 Merge();
                             }
                             break;
@@ -215,59 +227,104 @@ namespace server
             }
         }
         
-        public static void Init()
+        public static void Init1()
         {
             size = 25;//размер квадратика в пикселях
             score = 0;
-            currentShape = new Shape(3, 0);// должна приходить с сервака
             Interval = 500;
+            currentShape1 = new Shape(2, 0);// должна приходить с сервака
 
             timer1.Interval = Interval;
-            timer1.Elapsed += new ElapsedEventHandler(update);
+            timer1.Elapsed += new ElapsedEventHandler(update1);
             timer1.Start();
         }
 
-        private static void update(object sender, ElapsedEventArgs e)
+        private static void update1(object sender, ElapsedEventArgs e)
         {
             lock (mapLock)
             {
                 ResetArea();
                 if (!Collide())
                 {
-                    currentShape.MoveDown();
+                    currentShape1.MoveDown();
                 }
                 else
                 {
                     Merge();
                     SliceMap();
                     timer1.Interval = Interval;
-                    currentShape.ResetShape(3, 0);
+                    currentShape1.ResetShape(2, 0);
                     if (Collide())
                     {
                         for (int i = 0; i < 16; i++)
                         {
-                            for (int j = 0; j < 8; j++)
+                            for (int j = 0; j < mapWidth; j++)
                             {
                                 map[i, j] = 0;
                             }
                         }
-                        timer1.Elapsed -= new ElapsedEventHandler(update);
+                        timer1.Elapsed -= new ElapsedEventHandler(update1);
                         timer1.Stop();
-                        Init();
+                        Init1();
                     }
                 }
                 Merge();
             }
        }
 
+        public static void Init2()
+        {
+            size = 25;//размер квадратика в пикселях
+            score = 0;
+            Interval = 500;
+            currentShape2 = new Shape(8, 0);// должна приходить с сервака
+
+            timer1.Interval = Interval;
+            timer1.Elapsed += new ElapsedEventHandler(update2);
+            timer1.Start();
+        }
+
+        private static void update2(object sender, ElapsedEventArgs e)
+        {
+            lock (mapLock)
+            {
+                ResetArea();
+                if (!Collide())
+                {
+                    currentShape2.MoveDown();
+                }
+                else
+                {
+                    Merge();
+                    SliceMap();
+                    timer1.Interval = Interval;
+                    currentShape2.ResetShape(8, 0);
+                    if (Collide())
+                    {
+                        for (int i = 0; i < 16; i++)
+                        {
+                            for (int j = 0; j < mapWidth; j++)
+                            {
+                                map[i, j] = 0;
+                            }
+                        }
+                        timer1.Elapsed -= new ElapsedEventHandler(update2);
+                        timer1.Stop();
+                        Init1();
+                    }
+                }
+                Merge();
+            }
+        }
+
         public static void Merge()
         {
-            for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
+            for (int i = currentShape1.y; i < currentShape1.y + currentShape1.sizeMatrix; i++)
             {
-                for (int j = currentShape.x; j < currentShape.x + currentShape.sizeMatrix; j++)
+                for (int j = currentShape1.x; j < currentShape1.x + currentShape1.sizeMatrix; j++)
                 {
-                    if (currentShape.matrix[i - currentShape.y, j - currentShape.x] != 0)
-                        map[i, j] = currentShape.matrix[i - currentShape.y, j - currentShape.x];
+                    if (currentShape1.matrix[i - currentShape1.y, j - currentShape1.x] != 0)
+                        map[i, j] = currentShape1.matrix[i - currentShape1.y, j - currentShape1.x];
                 }
             }
         }
@@ -279,17 +336,17 @@ namespace server
             for (int i = 0; i < 16; i++)
             {
                 count = 0;
-                for (int j = 0; j < 8; j++)
+                for (int j = 0; j < mapWidth; j++)
                 {
                     if (map[i, j] != 0)
                         count++;
                 }
-                if (count == 8)
+                if (count == mapWidth)
                 {
                     curRemovedLines++;
                     for (int k = i; k >= 1; k--)
                     {
-                        for (int o = 0; o < 8; o++)
+                        for (int o = 0; o < mapWidth; o++)
                         {
                             map[k, o] = map[k - 1, o];
                         }
@@ -311,11 +368,11 @@ namespace server
 
         public static bool Collide()
         {
-            for (int i = currentShape.y + currentShape.sizeMatrix - 1; i >= currentShape.y; i--)
+            for (int i = currentShape1.y + currentShape1.sizeMatrix - 1; i >= currentShape1.y; i--)
             {
-                for (int j = currentShape.x; j < currentShape.x + currentShape.sizeMatrix; j++)
+                for (int j = currentShape1.x; j < currentShape1.x + currentShape1.sizeMatrix; j++)
                 {
-                    if (currentShape.matrix[i - currentShape.y, j - currentShape.x] != 0)
+                    if (currentShape1.matrix[i - currentShape1.y, j - currentShape1.x] != 0)
                     {
                         if (i + 1 == 16)
                             return true;
@@ -331,22 +388,22 @@ namespace server
 
         public static bool CollideHor(int dir)
         {
-            for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
+            for (int i = currentShape1.y; i < currentShape1.y + currentShape1.sizeMatrix; i++)
             {
-                for (int j = currentShape.x; j < currentShape.x + currentShape.sizeMatrix; j++)
+                for (int j = currentShape1.x; j < currentShape1.x + currentShape1.sizeMatrix; j++)
                 {
-                    if (currentShape.matrix[i - currentShape.y, j - currentShape.x] != 0)
+                    if (currentShape1.matrix[i - currentShape1.y, j - currentShape1.x] != 0)
                     {
-                        if (j + 1 * dir > 7 || j + 1 * dir < 0)
+                        if (j + 1 * dir > mapWidth-1 || j + 1 * dir < 0)
                             return true;
 
                         if (map[i, j + 1 * dir] != 0)
                         {
-                            if (j - currentShape.x + 1 * dir >= currentShape.sizeMatrix || j - currentShape.x + 1 * dir < 0)
+                            if (j - currentShape1.x + 1 * dir >= currentShape1.sizeMatrix || j - currentShape1.x + 1 * dir < 0)
                             {
                                 return true;
                             }
-                            if (currentShape.matrix[i - currentShape.y, j - currentShape.x + 1 * dir] == 0)
+                            if (currentShape1.matrix[i - currentShape1.y, j - currentShape1.x + 1 * dir] == 0)
                                 return true;
                         }
                     }
@@ -357,13 +414,13 @@ namespace server
 
         public static void ResetArea()
         {
-            for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
+            for (int i = currentShape1.y; i < currentShape1.y + currentShape1.sizeMatrix; i++)
             {
-                for (int j = currentShape.x; j < currentShape.x + currentShape.sizeMatrix; j++)
+                for (int j = currentShape1.x; j < currentShape1.x + currentShape1.sizeMatrix; j++)
                 {
-                    if (i >= 0 && j >= 0 && i < 16 && j < 8)
+                    if (i >= 0 && j >= 0 && i < 16 && j < mapWidth)
                     {
-                        if (currentShape.matrix[i - currentShape.y, j - currentShape.x] != 0)
+                        if (currentShape1.matrix[i - currentShape1.y, j - currentShape1.x] != 0)
                         {
                             map[i, j] = 0;
                         }
@@ -374,13 +431,13 @@ namespace server
 
         public static bool IsIntersects()
         {
-            for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
+            for (int i = currentShape1.y; i < currentShape1.y + currentShape1.sizeMatrix; i++)
             {
-                for (int j = currentShape.x; j < currentShape.x + currentShape.sizeMatrix; j++)
+                for (int j = currentShape1.x; j < currentShape1.x + currentShape1.sizeMatrix; j++)
                 {
-                    if (j >= 0 && j <= 7)
+                    if (j >= 0 && j <= mapWidth-1)
                     {
-                        if (map[i, j] != 0 && currentShape.matrix[i - currentShape.y, j - currentShape.x] == 0)
+                        if (map[i, j] != 0 && currentShape1.matrix[i - currentShape1.y, j - currentShape1.x] == 0)
                             return true;
                     }
                 }
@@ -393,7 +450,7 @@ namespace server
             string resultString = "";
             for (int y = 0; y < 16; y++)
             {
-                for (int x = 0; x < 8; x++)
+                for (int x = 0; x < mapWidth; x++)
                 {
                     resultString = String.Concat(resultString, array[y,x].ToString() + " ");
                 }

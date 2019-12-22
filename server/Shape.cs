@@ -14,6 +14,7 @@ namespace server
         public int[,] nextMatrix;
         public int sizeMatrix;
         public int sizeNextMatrix;
+        static readonly int mapWidth = 12;
 
         public int[,] tetr1 = new int[4, 4]{
             {0,0,1,0  },
@@ -120,7 +121,7 @@ namespace server
                 }
             }
             matrix = tempMatrix;
-            int offset1 = (8 - (x + sizeMatrix));
+            int offset1 = (mapWidth - (x + sizeMatrix));
             if (offset1 < 0)
             {
                 for (int i = 0; i < Math.Abs(offset1); i++)
