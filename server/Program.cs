@@ -67,10 +67,12 @@ namespace server
                     Thread.Sleep(50);
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 Console.WriteLine(e.Message);
             }
-            finally {
+            finally
+            {
                 if (serverSocket != null)
                     serverSocket.Stop();
             }
@@ -103,7 +105,7 @@ namespace server
                 {
                     buffer = clientStream.Read(readBuffer, 0, readBuffer.Length);// чтение конекшена и готовности всех игроков
                     message = Encoding.Unicode.GetString(readBuffer, 0, buffer);
-                    Console.WriteLine(name + ": " + (message == "1" ? "Подключился":"Готов играть"));
+                    Console.WriteLine(name + ": " + (message == "1" ? "Подключился" : "Готов играть"));
                     switch (Convert.ToInt32(message))
                     {
                         case 1://получаем команду готовности от клиента
@@ -124,20 +126,16 @@ namespace server
                             }
                             while (play != playerThreadsCount) { Thread.Sleep(20); }
 
-                            Thread keyPressListener = new Thread(delegate () { ClientPressKeyHandler(client, localNumber); });
-                            keyPressListener.Start();
+                            Thread keyPressListener1 = new Thread(delegate () { ClientPressKeyHandlerPlayer1(client); });
+                            keyPressListener1.Start();
+                            Thread keyPressListener2 = new Thread(delegate () { ClientPressKeyHandlerPlayer2(client); });
+                            keyPressListener2.Start();
 
-                            if (localNumber == 1)
-                            {
-                                Thread gameLoopThread1 = new Thread(Init1);
-                                gameLoopThread1.Start();
-                            }
-                            else
-                            {
-                                Thread gameLoopThread2 = new Thread(Init2);
-                                gameLoopThread2.Start();
-                            }
-                            //Init();
+                            Thread gameLoopThread1 = new Thread(Init1);
+                            gameLoopThread1.Start();
+                            Thread gameLoopThread2 = new Thread(Init2);
+                            gameLoopThread2.Start();
+
                             while (true)
                             {
                                 writeBuffer = Encoding.Unicode.GetBytes(ToString(map));
@@ -179,11 +177,11 @@ namespace server
             return map;
         }
 
-         //обработчик нажатия клавиш клиентом
-        static void ClientPressKeyHandler(TcpClient client, int localNumber)
+        //обработчик нажатия клавиш клиентом
+        static void ClientPressKeyHandlerPlayer2(TcpClient client)
         {
             NetworkStream clientPressKeyStream = client.GetStream();
-            if (localNumber == 1)
+            try
             {
                 while (true)
                 {
@@ -191,97 +189,103 @@ namespace server
                     byte[] readBuffer = new byte[256];
                     int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
                     inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
-                    lock (mapLock)
+
+                    switch (inputString)
                     {
-                        switch (inputString)
-                        {
-                            case "Up":
-                                Console.Write("Up ");
-                                if (!IsIntersects(currentShape1))
-                                {
-                                    ResetArea(currentShape1);
-                                    currentShape1.RotateShape();
-                                    Merge(currentShape1);
-                                }
-                                break;
-                            case "Down":
-                                Console.Write("Down ");
-                                break;
-                            case "Right":
-                                Console.Write("Right ");
-                                if (!CollideHor(1, currentShape1))
-                                {
-                                    ResetArea(currentShape1);
-                                    currentShape1.MoveRight();
-                                    Merge(currentShape1);
-                                }
-                                break;
-                            case "Left":
-                                Console.Write("Left ");
-                                if (!CollideHor(-1, currentShape1))
-                                {
-                                    ResetArea(currentShape1);
-                                    currentShape1.MoveLeft();
-                                    Merge(currentShape1);
-                                }
-                                break;
-                        }
+                        case "Up":
+                            Console.Write("Up ");
+                            if (!IsIntersects(currentShape2))
+                            {
+                                ResetArea(currentShape2);
+                                currentShape2.RotateShape();
+                                Merge(currentShape2);
+                            }
+                            break;
+                        case "Down":
+                            Console.Write("Down ");
+                            break;
+                        case "Right":
+                            Console.Write("Right ");
+                            if (!CollideHor(1, currentShape2, "currentShape2"))
+                            {
+                                ResetArea(currentShape2);
+                                currentShape2.MoveRight();
+                                Merge(currentShape2);
+                            }
+                            break;
+                        case "Left":
+                            Console.Write("Left ");
+                            if (!CollideHor(-1, currentShape2, "currentShape2"))
+                            {
+                                ResetArea(currentShape2);
+                                currentShape2.MoveLeft();
+                                Merge(currentShape2);
+                            }
+                            break;
                     }
                 }
             }
-            else
-            {
-                while (true)
-                {
-                    string inputString;
-                    byte[] readBuffer = new byte[256];
-                    int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
-                    inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
-                    lock (mapLock)
-                    {
-                        switch (inputString)
-                        {
-                            case "Up":
-                                Console.Write("Up ");
-                                if (!IsIntersects(currentShape2))
-                                {
-                                    ResetArea(currentShape2);
-                                    currentShape2.RotateShape();
-                                    Merge(currentShape2);
-                                }
-                                break;
-                            case "Down":
-                                Console.Write("Down ");
-                                break;
-                            case "Right":
-                                Console.Write("Right ");
-                                if (!CollideHor(1, currentShape2))
-                                {
-                                    ResetArea(currentShape2);
-                                    currentShape2.MoveRight();
-                                    Merge(currentShape2);
-                                }
-                                break;
-                            case "Left":
-                                Console.Write("Left ");
-                                if (!CollideHor(-1, currentShape2))
-                                {
-                                    ResetArea(currentShape2);
-                                    currentShape2.MoveLeft();
-                                    Merge(currentShape2);
-                                }
-                                break;
-                        }
-                    }
-                }
-            }
+            catch (Exception e)
+            { clientPressKeyStream.Close(); }
         }
-        
+
+        static void ClientPressKeyHandlerPlayer1(TcpClient client)
+        {
+
+            NetworkStream clientPressKeyStream = client.GetStream();
+            try
+            {
+                while (true)
+                {
+                    string inputString;
+                    byte[] readBuffer = new byte[256];
+                    int inputBuffer = clientPressKeyStream.Read(readBuffer, 0, readBuffer.Length);
+                    inputString = Encoding.Unicode.GetString(readBuffer, 0, inputBuffer);
+
+                    switch (inputString)
+                    {
+                        case "WUp":
+                            Console.Write("WUp ");
+                            if (!IsIntersects(currentShape1))
+                            {
+                                ResetArea(currentShape1);
+                                currentShape1.RotateShape();
+                                Merge(currentShape1);
+                            }
+                            break;
+                        case "SDown":
+                            Console.Write("SDown ");
+                            break;
+                        case "DRight":
+                            Console.Write("DRight ");
+                            if (!CollideHor(1, currentShape1, "currentShape1"))
+                            {
+                                ResetArea(currentShape1);
+                                currentShape1.MoveRight();
+                                Merge(currentShape1);
+                            }
+                            break;
+                        case "ALeft":
+                            Console.Write("ALeft ");
+                            if (!CollideHor(-1, currentShape1, "currentShape1"))
+                            {
+                                ResetArea(currentShape1);
+                                currentShape1.MoveLeft();
+                                Merge(currentShape1);
+                            }
+                            break;
+                    }
+                }
+            }
+            catch (Exception e)
+            { clientPressKeyStream.Close(); }
+        }
+
         public static void Init1()
         {
             size = 25;//размер квадратика в пикселях
             score = 0;
-            Interval1 = 500;
+            Interval1 = 300;
             currentShape1 = new Shape(2, 0);// должна приходить с сервака
 
             timer1.Interval = Interval1;
@@ -291,41 +295,40 @@ namespace server
 
         private static void update1(object sender, ElapsedEventArgs e)
         {
-            lock (mapLock)
+            ResetArea(currentShape1);
+            if (!Collide(currentShape1))
             {
-                ResetArea(currentShape1);
-                if (!Collide(currentShape1))
-                {
-                    currentShape1.MoveDown();
-                }
-                else
-                {
-                    Merge(currentShape1);
-                    SliceMap();
-                    timer1.Interval = Interval1;
-                    currentShape1.ResetShape(2, 0);
-                    if (Collide(currentShape1))
-                    {
-                        for (int i = 0; i < 16; i++)
-                        {
-                            for (int j = 0; j < mapWidth; j++)
-                            {
-                                map[i, j] = 0;
-                            }
-                        }
-                        timer1.Elapsed -= new ElapsedEventHandler(update1);
-                        timer1.Stop();
-                        Init1();
-                    }
-                }
-                Merge(currentShape1);
+                currentShape1.MoveDown();
             }
-       }
+            else
+            {
+                Merge(currentShape1);
+                //while (!Collide(currentShape2)) Thread.Sleep(30);
+                SliceMap();
+                timer1.Interval = Interval1;
+                currentShape1.ResetShape(2, 0);
+                if (Collide(currentShape1))
+                {
+                    for (int i = 0; i < 16; i++)
+                    {
+                        for (int j = 0; j < mapWidth; j++)
+                        {
+                            map[i, j] = 0;
+                        }
+                    }
+                    timer1.Elapsed -= new ElapsedEventHandler(update1);
+                    timer1.Stop();
+                    Init1();
+                }
+            }
+
+            Merge(currentShape1);
+        }
 
         public static void Init2()
         {
             size = 25;//размер квадратика в пикселях
-            Interval2 = 500;
+            Interval2 = 300;
             currentShape2 = new Shape(8, 0);// должна приходить с сервака
 
             timer2.Interval = Interval2;
@@ -335,38 +338,37 @@ namespace server
 
         private static void update2(object sender, ElapsedEventArgs e)
         {
-            lock (mapLock)
+            ResetArea(currentShape2);
+            if (!Collide(currentShape2))
             {
-                ResetArea(currentShape2);
-                if (!Collide(currentShape2))
-                {
-                    currentShape2.MoveDown();
-                }
-                else
-                {
-                    Merge(currentShape2);
-                    SliceMap();
-                    timer2.Interval = Interval2;
-                    currentShape2.ResetShape(8, 0);
-                    if (Collide(currentShape2))
-                    {
-                        for (int i = 0; i < 16; i++)
-                        {
-                            for (int j = 0; j < mapWidth; j++)
-                            {
-                                map[i, j] = 0;
-                            }
-                        }
-                        timer2.Elapsed -= new ElapsedEventHandler(update2);
-                        timer2.Stop();
-                        Init2();
-                    }
-                }
-                Merge(currentShape2);
+                currentShape2.MoveDown();
             }
+            else
+            {
+                Merge(currentShape2);
+                //while (!Collide(currentShape1)) Thread.Sleep(30);
+
+                SliceMap();
+                timer2.Interval = Interval2;
+                currentShape2.ResetShape(8, 0);
+                if (Collide(currentShape2))
+                {
+                    for (int i = 0; i < 16; i++)
+                    {
+                        for (int j = 0; j < mapWidth; j++)
+                        {
+                            map[i, j] = 0;
+                        }
+                    }
+                    timer2.Elapsed -= new ElapsedEventHandler(update2);
+                    timer2.Stop();
+                    Init2();
+                }
+            }
+            Merge(currentShape2);
         }
 
-        public static void Merge(Shape currentShape)
+        public static bool Merge(Shape currentShape)
         {
             for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
             {
@@ -376,12 +378,12 @@ namespace server
                         map[i, j] = currentShape.matrix[i - currentShape.y, j - currentShape.x];
                 }
             }
+            return true;
         }
 
         public static void SliceMap()
         {
             int count = 0;
-            int curRemovedLines = 0;
             for (int i = 0; i < 16; i++)
             {
                 count = 0;
@@ -392,7 +394,6 @@ namespace server
                 }
                 if (count == mapWidth)
                 {
-                    curRemovedLines++;
                     for (int k = i; k >= 1; k--)
                     {
                         for (int o = 0; o < mapWidth; o++)
@@ -401,17 +402,6 @@ namespace server
                         }
                     }
                 }
-            }
-            for (int i = 0; i < curRemovedLines; i++)
-            {
-                score += 10 * (i + 1);
-            }
-            linesRemoved += curRemovedLines;
-
-            if (linesRemoved % 5 == 0)
-            {
-                if (Interval1 > 60)
-                    Interval1 -= 10;
             }
         }
 
@@ -435,15 +425,27 @@ namespace server
             return false;
         }
 
-        public static bool CollideHor(int dir, Shape currentShape)
+        public static bool CollideHor(int dir, Shape currentShape, string currentShapeString)
         {
+            int leftBorder;
+            int rightBorder;
+            if (currentShapeString == "currentShape1")
+            {
+                leftBorder = 0;
+                rightBorder = mapWidth / 2 - 1;
+            }
+            else
+            {
+                leftBorder = mapWidth / 2; ;
+                rightBorder = mapWidth - 1;
+            }
             for (int i = currentShape.y; i < currentShape.y + currentShape.sizeMatrix; i++)
             {
                 for (int j = currentShape.x; j < currentShape.x + currentShape.sizeMatrix; j++)
                 {
                     if (currentShape.matrix[i - currentShape.y, j - currentShape.x] != 0)
                     {
-                        if (j + 1 * dir > mapWidth-1 || j + 1 * dir < 0)
+                        if (j + 1 * dir > rightBorder || j + 1 * dir < leftBorder)
                             return true;
 
                         if (map[i, j + 1 * dir] != 0)
@@ -484,7 +486,7 @@ namespace server
             {
                 for (int j = currentShape.x; j < currentShape.x + currentShape.sizeMatrix; j++)
                 {
-                    if (j >= 0 && j <= mapWidth-1)
+                    if (j >= 0 && j <= mapWidth - 1)
                     {
                         if (map[i, j] != 0 && currentShape.matrix[i - currentShape.y, j - currentShape.x] == 0)
                             return true;
@@ -501,7 +503,7 @@ namespace server
             {
                 for (int x = 0; x < mapWidth; x++)
                 {
-                    resultString = String.Concat(resultString, array[y,x].ToString() + " ");
+                    resultString = String.Concat(resultString, array[y, x].ToString() + " ");
                 }
                 resultString = String.Concat(resultString, "/");
             }

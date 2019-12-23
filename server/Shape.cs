@@ -83,7 +83,7 @@ namespace server
         {
             int[,] _matrix = tetr1;
             Random r = new Random();
-            switch (r.Next(1, 8))
+            switch (r.Next(7,8))
             {
                 case 1:
                     _matrix = tetr1;
