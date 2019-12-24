@@ -299,11 +299,12 @@ namespace server
             if (!Collide(currentShape1))
             {
                 currentShape1.MoveDown();
+                Merge(currentShape1);
             }
             else
             {
                 Merge(currentShape1);
-                //while (!Collide(currentShape2)) Thread.Sleep(30);
+                while (!currentShape1.isCollide && !currentShape2.isCollide) Thread.Sleep(50);
                 SliceMap();
                 timer1.Interval = Interval1;
                 currentShape1.ResetShape(2, 0);
@@ -322,7 +323,7 @@ namespace server
                 }
             }
 
-            Merge(currentShape1);
+            //Merge(currentShape1);
         }
 
         public static void Init2()
@@ -342,12 +343,13 @@ namespace server
             if (!Collide(currentShape2))
             {
                 currentShape2.MoveDown();
+                Merge(currentShape2);
             }
             else
             {
                 Merge(currentShape2);
                 //while (!Collide(currentShape1)) Thread.Sleep(30);
-
+                while (!currentShape1.isCollide && !currentShape2.isCollide) Thread.Sleep(50);
                 SliceMap();
                 timer2.Interval = Interval2;
                 currentShape2.ResetShape(8, 0);
@@ -365,7 +367,7 @@ namespace server
                     Init2();
                 }
             }
-            Merge(currentShape2);
+            //Merge(currentShape2);
         }
 
         public static bool Merge(Shape currentShape)
@@ -414,14 +416,19 @@ namespace server
                     if (currentShape.matrix[i - currentShape.y, j - currentShape.x] != 0)
                     {
                         if (i + 1 == 16)
+                        {
+                            currentShape.isCollide = true;
                             return true;
+                        }
                         if (map[i + 1, j] != 0)
                         {
+                            currentShape.isCollide = true;
                             return true;
                         }
                     }
                 }
             }
+            currentShape.isCollide = false;
             return false;
         }
 

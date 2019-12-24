@@ -15,13 +15,20 @@ namespace server
         public int sizeMatrix;
         public int sizeNextMatrix;
         static readonly int mapWidth = 12;
+        public bool isCollide = false;
 
-        public int[,] tetr1 = new int[4, 4]{
-            {0,0,1,0  },
-            {0,0,1,0  },
-            {0,0,1,0  },
-            {0,0,1,0  },
+        //public int[,] tetr1 = new int[4, 4]{
+        //    {0,0,1,0  },
+        //    {0,0,1,0  },
+        //    {0,0,1,0  },
+        //    {0,0,1,0  },
+        //};
+        public int[,] tetr1 = new int[3, 3]{
+            {0,1,0 },
+            {0,1,0 },
+            {0,1,0 },
         };
+
 
         public int[,] tetr2 = new int[3, 3]{
             {0,2,0 },
